@@ -3,32 +3,42 @@ from rest_framework import serializers
 from .models import Project
 
 
-class ProjectSerializer(serializers.ModelSerializer):
-    id = serializers.UUIDField(read_only=True)
+class ProjectDataInputSerializer(serializers.Serializer):
+    """Validates the nested ``project`` object in a SavedProject request body."""
 
-    class Meta:
-        model = Project
-        fields = [
-            'id',
-            'name',
-            'project_type',
-            'project_model_url',
-            'steps',
-            'connections',
-            'guide',
-            'node_positions',
-            'created_at',
-            'updated_at',
-        ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+    id = serializers.UUIDField(required=False)
+    name = serializers.CharField(max_length=255)
+    projectType = serializers.ChoiceField(
+        choices=['builder', 'upload'], default='builder', required=False
+    )
+    projectModelUrl = serializers.CharField(
+        allow_null=True, allow_blank=True, required=False, default=None
+    )
+    steps = serializers.ListField(child=serializers.DictField(), required=False, default=list)
+    connections = serializers.ListField(child=serializers.DictField(), required=False, default=list)
+    guide = serializers.ListField(child=serializers.DictField(), required=False, default=list)
 
 
-class ProjectListSerializer(serializers.ModelSerializer):
-    """Lightweight serializer for listing projects (without heavy JSON fields)."""
+class SavedProjectInputSerializer(serializers.Serializer):
+    """Validates the full SavedProject envelope sent by the client."""
 
-    id = serializers.UUIDField(read_only=True)
+    project = ProjectDataInputSerializer()
+    nodePositions = serializers.DictField(required=False, default=dict)
+    lastModified = serializers.IntegerField(required=False)
 
-    class Meta:
-        model = Project
-        fields = ['id', 'name', 'project_type', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+
+def serialize_project(project: Project) -> dict:
+    """Serialize a Project instance to the SavedProject envelope expected by the frontend."""
+    return {
+        'project': {
+            'id': str(project.id),
+            'name': project.name,
+            'projectType': project.project_type,
+            'projectModelUrl': project.project_model_url or None,
+            'steps': project.steps,
+            'connections': project.connections,
+            'guide': project.guide,
+        },
+        'nodePositions': project.node_positions,
+        'lastModified': int(project.updated_at.timestamp() * 1000),
+    }

@@ -18,7 +18,7 @@ class Project(models.Model):
         choices=PROJECT_TYPE_CHOICES,
         default='builder',
     )
-    project_model_url = models.URLField(blank=True, default='')
+    project_model_url = models.TextField(blank=True, null=True, default=None)
     steps = models.JSONField(default=list)
     connections = models.JSONField(default=list)
     guide = models.JSONField(default=list)

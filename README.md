@@ -45,39 +45,58 @@ JWT-based authentication. Tokens are stored in HTTP-only cookies – the browser
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/auth/login/` | `{ email, password }` → sets `access_token` + `refresh_token` HTTP-only cookies |
-| POST | `/api/auth/logout/` | Clears both token cookies |
-| POST | `/api/auth/token/refresh/` | Reads `refresh_token` cookie → issues new `access_token` (and rotated `refresh_token`) |
-| GET | `/api/auth/me/` | Returns current user info |
+| POST | `/api/auth/login` | `{ email, password }` → sets `access_token` + `refresh_token` HTTP-only cookies |
+| POST | `/api/auth/logout` | Clears both token cookies |
+| POST | `/api/auth/refresh` | Reads `refresh_token` cookie → issues new `access_token` (and rotated `refresh_token`) |
+| GET | `/api/auth/me` | Returns `{ id, email, name }` for the current user |
 
 **Token lifetimes** (configurable via `SIMPLE_JWT` in settings):
 - Access token: **15 minutes**
 - Refresh token: **7 days** (automatically rotated on each refresh)
 
+**Login response**
+```json
+{ "id": "1", "email": "user@example.com", "name": "Jan Kowalski" }
+```
+
+**Refresh response**
+```json
+{ "ok": true }
+```
+
+**Error format** (all auth errors)
+```json
+{ "message": "Invalid email or password" }
+```
+
 ### Projects
 
-All project endpoints require authentication.
+All project endpoints require authentication. Responses use the `SavedProject` envelope to match the frontend store contract.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/projects/` | List all projects owned by the current user |
-| POST | `/api/projects/` | Create a new project |
-| GET | `/api/projects/{id}/` | Get a specific project |
-| PUT | `/api/projects/{id}/` | Replace a project |
-| PATCH | `/api/projects/{id}/` | Partially update a project |
-| DELETE | `/api/projects/{id}/` | Delete a project |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/projects` | required | List all projects owned by the current user |
+| POST | `/api/projects` | required | Create a new project (client may supply UUID; `409` if it already exists) |
+| GET | `/api/projects/{id}` | required | Get a specific project |
+| PUT | `/api/projects/{id}` | required | Full replace of a project |
+| DELETE | `/api/projects/{id}` | required | Delete a project |
+| GET | `/api/projects/{id}/public` | **none** | Public read-only view (shareable link) |
 
 #### Project payload example
 
 ```json
 {
-  "name": "My Assembly Guide",
-  "project_type": "builder",
-  "project_model_url": "",
-  "steps": [],
-  "connections": [],
-  "guide": [],
-  "node_positions": {}
+  "project": {
+    "id": "project-uuid",
+    "name": "My Assembly Guide",
+    "projectType": "builder",
+    "projectModelUrl": null,
+    "steps": [],
+    "connections": [],
+    "guide": []
+  },
+  "nodePositions": {},
+  "lastModified": 1700000000000
 }
 ```
 

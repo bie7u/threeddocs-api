@@ -45,7 +45,10 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'message': 'Invalid email or password'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
@@ -54,14 +57,14 @@ class LoginView(APIView):
             user = User.objects.get(email=email)
         except User.DoesNotExist:
             return Response(
-                {'detail': 'Invalid credentials.'},
+                {'message': 'Invalid email or password'},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
         user = authenticate(request, username=user.username, password=password)
         if user is None:
             return Response(
-                {'detail': 'Invalid credentials.'},
+                {'message': 'Invalid email or password'},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
@@ -88,16 +91,19 @@ class TokenRefreshView(APIView):
         raw_refresh = request.COOKIES.get(REFRESH_COOKIE)
         if not raw_refresh:
             return Response(
-                {'detail': 'Refresh token not found.'},
+                {'message': 'Refresh token not found.'},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
         try:
             refresh = RefreshToken(raw_refresh)
         except (InvalidToken, TokenError):
-            return Response({'detail': 'Invalid or expired refresh token.'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {'message': 'Invalid or expired refresh token.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
-        response = Response(status=status.HTTP_200_OK)
+        response = Response({'ok': True}, status=status.HTTP_200_OK)
         _set_token_cookies(response, refresh)
         return response
 
@@ -107,5 +113,3 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
-
-
