@@ -51,7 +51,7 @@ class ProjectTests(TestCase):
     def test_list_unauthenticated(self):
         self.client.force_authenticate(user=None)
         response = self.client.get('/api/projects/')
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     # Create
     def test_create_project(self):

@@ -4,7 +4,7 @@ Django REST Framework API for the [threeddocs](https://github.com/bie7u/threeddo
 
 ## Features
 
-- **Authentication** via HTTP-only session cookies (login / logout / me)
+- **Authentication** via JWT access + refresh tokens stored in HTTP-only cookies
 - **Projects** CRUD – store and manage 3D model project data per user
 
 ## Requirements
@@ -41,11 +41,18 @@ The API will be available at `http://localhost:8000`.
 
 ### Authentication
 
+JWT-based authentication. Tokens are stored in HTTP-only cookies – the browser sends them automatically with every request.
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/auth/login/` | Log in with `{ email, password }` → sets session cookie |
-| POST | `/api/auth/logout/` | Log out (clears session) |
-| GET | `/api/auth/me/` | Return current user info |
+| POST | `/api/auth/login/` | `{ email, password }` → sets `access_token` + `refresh_token` HTTP-only cookies |
+| POST | `/api/auth/logout/` | Clears both token cookies |
+| POST | `/api/auth/token/refresh/` | Reads `refresh_token` cookie → issues new `access_token` (and rotated `refresh_token`) |
+| GET | `/api/auth/me/` | Returns current user info |
+
+**Token lifetimes** (configurable via `SIMPLE_JWT` in settings):
+- Access token: **15 minutes**
+- Refresh token: **7 days** (automatically rotated on each refresh)
 
 ### Projects
 

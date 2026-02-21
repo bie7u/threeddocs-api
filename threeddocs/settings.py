@@ -3,6 +3,7 @@ Django settings for threeddocs project.
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,6 +32,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    'rest_framework_simplejwt',
     'authentication',
     'projects',
 ]
@@ -118,7 +120,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
+        'authentication.backends.CookieJWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -132,12 +134,25 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
 
-# Session / Cookie settings
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_SECURE = not DEBUG  # True in production (HTTPS)
-CSRF_COOKIE_HTTPONLY = False  # JS needs to read CSRF cookie to send it
-CSRF_COOKIE_SAMESITE = 'Lax'
+# JWT cookie names
+ACCESS_TOKEN_COOKIE = 'access_token'
+REFRESH_TOKEN_COOKIE = 'refresh_token'
+
+# Cookie security settings
+JWT_COOKIE_HTTPONLY = True
+JWT_COOKIE_SAMESITE = 'Lax'
+JWT_COOKIE_SECURE = not DEBUG  # True in production (HTTPS)
+
+# SimpleJWT token lifetimes
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': False,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+}
+
 CSRF_TRUSTED_ORIGINS = os.environ.get(
     'CSRF_TRUSTED_ORIGINS',
     'http://localhost:5173,http://127.0.0.1:5173',
