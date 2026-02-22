@@ -1,7 +1,10 @@
-from rest_framework import generics, viewsets
+from rest_framework import generics, status, viewsets
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import Project
+from .models import Project, ProjectShare
 from .serializers import ProjectSerializer
 
 
@@ -35,3 +38,33 @@ class ProjectPublicView(generics.RetrieveAPIView):
     serializer_class = ProjectSerializer
     permission_classes = [AllowAny]
     queryset = Project.objects.all()
+
+
+class ProjectShareView(APIView):
+    """POST /api/projects/:id/share – Generate (or return existing) share token."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        try:
+            project = Project.objects.get(pk=pk, owner=request.user)
+        except Project.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+
+        share, _ = ProjectShare.objects.get_or_create(project=project)
+        return Response({'shareToken': str(share.token)})
+
+
+class ProjectSharedView(generics.RetrieveAPIView):
+    """GET /api/projects/shared/:token – Public access via share token."""
+
+    serializer_class = ProjectSerializer
+    permission_classes = [AllowAny]
+
+    def get_object(self):
+        token = self.kwargs['token']
+        try:
+            share = ProjectShare.objects.select_related('project').get(token=token)
+        except ProjectShare.DoesNotExist:
+            raise NotFound()
+        return share.project
