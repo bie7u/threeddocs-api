@@ -1,9 +1,11 @@
 from django.urls import path
+from rest_framework.routers import SimpleRouter
 
-from .views import ProjectDetailView, ProjectListCreateView, ProjectPublicView
+from .views import ProjectPublicView, ProjectViewSet
 
-urlpatterns = [
-    path('', ProjectListCreateView.as_view(), name='project-list-create'),
-    path('<int:pk>', ProjectDetailView.as_view(), name='project-detail'),
+router = SimpleRouter(trailing_slash=False)
+router.register('', ProjectViewSet, basename='project')
+
+urlpatterns = router.urls + [
     path('<int:pk>/public', ProjectPublicView.as_view(), name='project-public'),
 ]

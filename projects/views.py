@@ -1,44 +1,32 @@
-from django.shortcuts import get_object_or_404
-from rest_framework import generics, mixins
+from rest_framework import generics, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
 
 from .models import Project
 from .serializers import SavedProjectSerializer
 
 
-class ProjectListCreateView(generics.ListCreateAPIView):
+class ProjectViewSet(viewsets.ModelViewSet):
+    """
+    Single view for all authenticated project operations.
+
+    list    → GET  /api/projects
+    create  → POST /api/projects
+    retrieve → GET  /api/projects/{id}
+    update  → PUT  /api/projects/{id}
+    destroy → DELETE /api/projects/{id}
+
+    PATCH is intentionally disabled – use PUT for full replacement.
+    """
+
     serializer_class = SavedProjectSerializer
     permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'put', 'delete', 'head', 'options']
 
     def get_queryset(self):
         return Project.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
-
-
-class ProjectDetailView(
-    mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin,
-    mixins.DestroyModelMixin,
-    generics.GenericAPIView,
-):
-    serializer_class = SavedProjectSerializer
-    permission_classes = [IsAuthenticated]
-    http_method_names = ['get', 'put', 'delete', 'head', 'options']
-
-    def get_queryset(self):
-        return Project.objects.filter(owner=self.request.user)
-
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
-
-    def put(self, request, *args, **kwargs):
-        return self.update(request, *args, **kwargs)
-
-    def delete(self, request, *args, **kwargs):
-        return self.destroy(request, *args, **kwargs)
 
 
 class ProjectPublicView(generics.RetrieveAPIView):
