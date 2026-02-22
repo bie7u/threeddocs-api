@@ -1,101 +1,50 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import status
+from rest_framework import generics, mixins
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from .models import Project
-from .serializers import SavedProjectInputSerializer, serialize_project
+from .serializers import SavedProjectSerializer
 
 
-def _first_error(errors: dict) -> str:
-    """Extract the first human-readable error message from a DRF errors dict."""
-    for value in errors.values():
-        if isinstance(value, list) and value:
-            return str(value[0])
-        if isinstance(value, dict):
-            return _first_error(value)
-        return str(value)
-    return 'Validation error.'
-
-
-def _project_from_input(owner, validated_data, project: Project = None) -> Project:
-    """Create or fully replace a Project from validated SavedProjectInputSerializer data."""
-    project_data = validated_data['project']
-    node_positions = validated_data.get('nodePositions', {})
-
-    fields = dict(
-        name=project_data['name'],
-        project_type=project_data.get('projectType', 'builder'),
-        project_model_url=project_data.get('projectModelUrl'),
-        steps=project_data.get('steps', []),
-        connections=project_data.get('connections', []),
-        guide=project_data.get('guide', []),
-        node_positions=node_positions,
-    )
-
-    if project is None:
-        project = Project.objects.create(owner=owner, **fields)
-    else:
-        for key, value in fields.items():
-            setattr(project, key, value)
-        project.save()
-
-    return project
-
-
-class ProjectListCreateView(APIView):
+class ProjectListCreateView(generics.ListCreateAPIView):
+    serializer_class = SavedProjectSerializer
     permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        projects = Project.objects.filter(owner=request.user)
-        return Response([serialize_project(p) for p in projects])
+    def get_queryset(self):
+        return Project.objects.filter(owner=self.request.user)
 
-    def post(self, request):
-        ser = SavedProjectInputSerializer(data=request.data)
-        if not ser.is_valid():
-            return Response(
-                {'message': _first_error(ser.errors)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        project = _project_from_input(request.user, ser.validated_data)
-        return Response(serialize_project(project), status=status.HTTP_201_CREATED)
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 
-class ProjectDetailView(APIView):
+class ProjectDetailView(
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    generics.GenericAPIView,
+):
+    serializer_class = SavedProjectSerializer
     permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'put', 'delete', 'head', 'options']
 
-    def _get_project(self, request, pk):
-        return get_object_or_404(Project, pk=pk, owner=request.user)
+    def get_queryset(self):
+        return Project.objects.filter(owner=self.request.user)
 
-    def get(self, request, pk):
-        project = self._get_project(request, pk)
-        return Response(serialize_project(project))
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
 
-    def put(self, request, pk):
-        project = self._get_project(request, pk)
-        ser = SavedProjectInputSerializer(data=request.data)
-        if not ser.is_valid():
-            return Response(
-                {'message': _first_error(ser.errors)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        project = _project_from_input(request.user, ser.validated_data, project=project)
-        return Response(serialize_project(project))
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
 
-    def delete(self, request, pk):
-        project = self._get_project(request, pk)
-        project.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
 
 
-class ProjectPublicView(APIView):
+class ProjectPublicView(generics.RetrieveAPIView):
     """Unauthenticated read-only access to a single project (shareable link)."""
 
+    serializer_class = SavedProjectSerializer
     permission_classes = [AllowAny]
-
-    def get(self, request, pk):
-        project = get_object_or_404(Project, pk=pk)
-        return Response(serialize_project(project))
+    queryset = Project.objects.all()
 

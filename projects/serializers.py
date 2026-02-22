@@ -3,41 +3,49 @@ from rest_framework import serializers
 from .models import Project
 
 
-class ProjectDataInputSerializer(serializers.Serializer):
-    """Validates the nested ``project`` object in a SavedProject request body."""
+class ProjectDataSerializer(serializers.ModelSerializer):
+    """Maps the Project model fields to the inner 'project' key (camelCase)."""
 
-    name = serializers.CharField(max_length=255)
     projectType = serializers.ChoiceField(
-        choices=['builder', 'upload'], default='builder', required=False
+        choices=['builder', 'upload'],
+        source='project_type',
+        default='builder',
     )
     projectModelUrl = serializers.CharField(
-        allow_null=True, allow_blank=True, required=False, default=None
+        source='project_model_url',
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+        default=None,
     )
-    steps = serializers.ListField(child=serializers.DictField(), required=False, default=list)
-    connections = serializers.ListField(child=serializers.DictField(), required=False, default=list)
-    guide = serializers.ListField(child=serializers.DictField(), required=False, default=list)
+
+    class Meta:
+        model = Project
+        fields = ['id', 'name', 'projectType', 'projectModelUrl', 'steps', 'connections', 'guide']
+        read_only_fields = ['id']
 
 
-class SavedProjectInputSerializer(serializers.Serializer):
-    """Validates the full SavedProject envelope sent by the client."""
+class SavedProjectSerializer(serializers.Serializer):
+    """
+    Full SavedProject envelope: {project: {...}, nodePositions: {...}, lastModified: N}.
 
-    project = ProjectDataInputSerializer()
-    nodePositions = serializers.DictField(required=False, default=dict)
-    lastModified = serializers.IntegerField(required=False)
+    Uses source='*' on the nested serializer so the inner project fields are read
+    from / written back to the Project instance directly (no extra nesting in
+    validated_data).
+    """
 
+    project = ProjectDataSerializer(source='*')
+    nodePositions = serializers.JSONField(source='node_positions', default=dict)
+    lastModified = serializers.SerializerMethodField()
 
-def serialize_project(project: Project) -> dict:
-    """Serialize a Project instance to the SavedProject envelope expected by the frontend."""
-    return {
-        'project': {
-            'id': str(project.id),
-            'name': project.name,
-            'projectType': project.project_type,
-            'projectModelUrl': project.project_model_url or None,
-            'steps': project.steps,
-            'connections': project.connections,
-            'guide': project.guide,
-        },
-        'nodePositions': project.node_positions,
-        'lastModified': int(project.updated_at.timestamp() * 1000),
-    }
+    def get_lastModified(self, obj):
+        return int(obj.updated_at.timestamp() * 1000)
+
+    def create(self, validated_data):
+        return Project.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
