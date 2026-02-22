@@ -163,21 +163,19 @@ Returns the currently authenticated user.
 
 All project endpoints (except `/public`) require a valid `access_token` cookie. Users can only access their own projects.
 
-#### Data shape – `SavedProject`
+#### Data shape – `Project`
 
-Every project endpoint sends and receives the same **`SavedProject`** envelope:
+Every project endpoint sends and receives a single flat object:
 
 ```json
 {
-  "project": {
-    "id": 42,
-    "name": "My Assembly Guide",
-    "projectType": "builder",
-    "projectModelUrl": null,
-    "steps": [],
-    "connections": [],
-    "guide": []
-  },
+  "id": 42,
+  "name": "My Assembly Guide",
+  "projectType": "builder",
+  "projectModelUrl": null,
+  "steps": [],
+  "connections": [],
+  "guide": [],
   "nodePositions": {
     "step-1": { "x": 100, "y": 200 }
   },
@@ -187,13 +185,13 @@ Every project endpoint sends and receives the same **`SavedProject`** envelope:
 
 | Field | Type | Read/Write | Description |
 |-------|------|-----------|-------------|
-| `project.id` | integer | **read-only** | Server-assigned primary key; omit in POST/PUT requests |
-| `project.name` | string | read/write | Human-readable project name |
-| `project.projectType` | `"builder"` \| `"upload"` | read/write | Editor mode |
-| `project.projectModelUrl` | string \| null | read/write | URL or data-URL of an uploaded GLB/GLTF model |
-| `project.steps` | array | read/write | List of `InstructionStep` objects |
-| `project.connections` | array | read/write | List of `Edge` (ReactFlow) objects |
-| `project.guide` | array | read/write | Ordered list of `GuideStep` objects |
+| `id` | integer | **read-only** | Server-assigned primary key |
+| `name` | string | read/write | Human-readable project name |
+| `projectType` | `"builder"` \| `"upload"` | read/write | Editor mode |
+| `projectModelUrl` | string \| null | read/write | URL or data-URL of an uploaded GLB/GLTF model |
+| `steps` | array | read/write | List of `InstructionStep` objects |
+| `connections` | array | read/write | List of `Edge` (ReactFlow) objects |
+| `guide` | array | read/write | Ordered list of `GuideStep` objects |
 | `nodePositions` | object | read/write | Map of step-id → `{ x, y }` canvas positions |
 | `lastModified` | integer | **read-only** | Unix timestamp in **milliseconds** (set by the server on every save) |
 
@@ -203,10 +201,10 @@ Every project endpoint sends and receives the same **`SavedProject`** envelope:
 
 Returns all projects owned by the authenticated user, ordered by most recently updated.
 
-**`200 OK`** – array of `SavedProject` objects:
+**`200 OK`** – array of `Project` objects:
 ```json
 [
-  { "project": { ... }, "nodePositions": {}, "lastModified": 1700000000000 }
+  { "id": 42, "name": "...", "projectType": "builder", "nodePositions": {}, "lastModified": 1700000000000, ... }
 ]
 ```
 
@@ -216,23 +214,20 @@ Returns all projects owned by the authenticated user, ordered by most recently u
 
 Creates a new project. The server assigns the `id`.
 
-**Request body** – `SavedProject` (without `project.id`):
+**Request body** – `Project` (without `id`/`lastModified`):
 ```json
 {
-  "project": {
-    "name": "My 3D Model",
-    "projectType": "builder",
-    "projectModelUrl": null,
-    "steps": [],
-    "connections": [],
-    "guide": []
-  },
-  "nodePositions": {},
-  "lastModified": 1700000000000
+  "name": "My 3D Model",
+  "projectType": "builder",
+  "projectModelUrl": null,
+  "steps": [],
+  "connections": [],
+  "guide": [],
+  "nodePositions": {}
 }
 ```
 
-**`201 Created`** – the saved `SavedProject` including the server-assigned `id`.
+**`201 Created`** – the saved `Project` including the server-assigned `id` and `lastModified`.
 
 **`400 Bad Request`**
 ```json
@@ -245,7 +240,7 @@ Creates a new project. The server assigns the `id`.
 
 Returns a single project by its integer `id`.
 
-**`200 OK`** – `SavedProject`.
+**`200 OK`** – `Project`.
 
 **`404 Not Found`** – project does not exist or belongs to another user.
 
@@ -257,7 +252,7 @@ Fully replaces a project. All writable fields must be supplied.
 
 **Request body** – same shape as `POST /api/projects`.
 
-**`200 OK`** – updated `SavedProject`.
+**`200 OK`** – updated `Project`.
 
 **`400 Bad Request`** – validation error.
 
@@ -279,7 +274,7 @@ Deletes a project permanently.
 
 Returns a project **without authentication**. Used by the shareable `/view/:projectId` link in the frontend.
 
-**`200 OK`** – `SavedProject`.
+**`200 OK`** – `Project`.
 
 **`404 Not Found`** – project does not exist.
 

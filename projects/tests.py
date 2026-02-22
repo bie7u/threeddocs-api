@@ -16,19 +16,16 @@ SAMPLE_STEP = {
 }
 
 
-def _saved_project_payload(name='My Model', **project_overrides):
-    """Build a SavedProject envelope matching the frontend contract."""
+def _project_payload(name='My Model', **overrides):
+    """Build a flat project payload matching the serializer contract."""
     return {
-        'project': {
-            'name': name,
-            'projectType': 'builder',
-            'steps': [],
-            'connections': [],
-            'guide': [],
-            **project_overrides,
-        },
+        'name': name,
+        'projectType': 'builder',
+        'steps': [],
+        'connections': [],
+        'guide': [],
         'nodePositions': {},
-        'lastModified': 1700000000000,
+        **overrides,
     }
 
 
@@ -43,8 +40,8 @@ class ProjectTests(TestCase):
         )
         self.client.force_authenticate(user=self.user)
 
-    def _create_project(self, name='My Model', **project_overrides):
-        data = _saved_project_payload(name, **project_overrides)
+    def _create_project(self, name='My Model', **overrides):
+        data = _project_payload(name, **overrides)
         return self.client.post('/api/projects', data, format='json')
 
     # ------------------------------------------------------------------
@@ -57,17 +54,21 @@ class ProjectTests(TestCase):
         response = self.client.get('/api/projects')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['project']['name'], 'P1')
+        self.assertEqual(response.data[0]['name'], 'P1')
 
-    def test_list_has_saved_project_shape(self):
+    def test_list_has_flat_shape(self):
         Project.objects.create(owner=self.user, name='P1')
         response = self.client.get('/api/projects')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         item = response.data[0]
-        self.assertIn('project', item)
+        self.assertIn('id', item)
+        self.assertIn('name', item)
+        self.assertIn('projectType', item)
         self.assertIn('nodePositions', item)
         self.assertIn('lastModified', item)
         self.assertIsInstance(item['lastModified'], int)
+        # must NOT have the nested 'project' key
+        self.assertNotIn('project', item)
 
     def test_list_unauthenticated(self):
         self.client.force_authenticate(user=None)
@@ -86,31 +87,29 @@ class ProjectTests(TestCase):
     def test_create_project(self):
         response = self._create_project('Assembly Guide')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['project']['name'], 'Assembly Guide')
-        self.assertIn('id', response.data['project'])
+        self.assertEqual(response.data['name'], 'Assembly Guide')
+        self.assertIn('id', response.data)
 
     def test_create_project_id_is_server_assigned(self):
         response = self._create_project()
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        # Server assigns the id; it should be a positive integer (as string in JSON)
-        project_id = response.data['project']['id']
-        self.assertGreater(int(project_id), 0)
+        self.assertGreater(response.data['id'], 0)
 
     def test_create_project_with_steps(self):
         response = self._create_project(steps=[SAMPLE_STEP])
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['project']['steps'][0]['id'], 'step-1')
+        self.assertEqual(response.data['steps'][0]['id'], 'step-1')
 
     def test_create_project_camel_case_response(self):
         response = self._create_project(projectType='upload', projectModelUrl='https://example.com/m.glb')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['project']['projectType'], 'upload')
-        self.assertEqual(response.data['project']['projectModelUrl'], 'https://example.com/m.glb')
+        self.assertEqual(response.data['projectType'], 'upload')
+        self.assertEqual(response.data['projectModelUrl'], 'https://example.com/m.glb')
 
     def test_create_project_null_model_url(self):
         response = self._create_project(projectModelUrl=None)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIsNone(response.data['project']['projectModelUrl'])
+        self.assertIsNone(response.data['projectModelUrl'])
 
     # ------------------------------------------------------------------
     # Retrieve  GET /api/projects/:id
@@ -120,7 +119,7 @@ class ProjectTests(TestCase):
         proj = Project.objects.create(owner=self.user, name='Mine')
         response = self.client.get(f'/api/projects/{proj.id}')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['project']['name'], 'Mine')
+        self.assertEqual(response.data['name'], 'Mine')
 
     def test_get_other_user_project_returns_404(self):
         proj = Project.objects.create(owner=self.other_user, name='NotMine')
@@ -133,17 +132,15 @@ class ProjectTests(TestCase):
 
     def test_update_project(self):
         proj = Project.objects.create(owner=self.user, name='Old')
-        data = _saved_project_payload('New', projectType='upload')
+        data = _project_payload('New', projectType='upload')
         response = self.client.put(f'/api/projects/{proj.id}', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['project']['name'], 'New')
-        self.assertEqual(response.data['project']['projectType'], 'upload')
+        self.assertEqual(response.data['name'], 'New')
+        self.assertEqual(response.data['projectType'], 'upload')
 
     def test_update_replaces_node_positions(self):
         proj = Project.objects.create(owner=self.user, name='P')
-        # nodePositions is at top-level of the SavedProject envelope, not inside project
-        payload = _saved_project_payload('P')
-        payload['nodePositions'] = {'step-1': {'x': 10, 'y': 20}}
+        payload = _project_payload('P', nodePositions={'step-1': {'x': 10, 'y': 20}})
         response = self.client.put(f'/api/projects/{proj.id}', payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['nodePositions']['step-1']['x'], 10)
@@ -173,7 +170,7 @@ class ProjectTests(TestCase):
         public_client = APIClient()  # no authentication
         response = public_client.get(f'/api/projects/{proj.id}/public')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['project']['name'], 'Shared')
+        self.assertEqual(response.data['name'], 'Shared')
         self.assertIn('nodePositions', response.data)
         self.assertIn('lastModified', response.data)
 

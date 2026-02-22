@@ -2,7 +2,7 @@ from rest_framework import generics, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from .models import Project
-from .serializers import SavedProjectSerializer
+from .serializers import ProjectSerializer
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
@@ -18,7 +18,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     PATCH is intentionally disabled – use PUT for full replacement.
     """
 
-    serializer_class = SavedProjectSerializer
+    serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
     http_method_names = ['get', 'post', 'put', 'delete', 'head', 'options']
 
@@ -32,7 +32,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
 class ProjectPublicView(generics.RetrieveAPIView):
     """Unauthenticated read-only access to a single project (shareable link)."""
 
-    serializer_class = SavedProjectSerializer
+    serializer_class = ProjectSerializer
     permission_classes = [AllowAny]
     queryset = Project.objects.all()
-
