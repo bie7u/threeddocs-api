@@ -8,6 +8,6 @@ urlpatterns = [
     path('api/auth/', include('authentication.urls')),
     # Handle /api/projects (no trailing slash) – POST and GET list
     path('api/projects', ProjectListCreateView.as_view()),
-    # Handle /api/projects/ (with trailing slash) plus /<uuid> and /<uuid>/public
+    # Handle /api/projects/ (with trailing slash) plus /<int:pk> and /<int:pk>/public
     path('api/projects/', include('projects.urls')),
 ]

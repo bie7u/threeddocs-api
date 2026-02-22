@@ -6,7 +6,6 @@ from .models import Project
 class ProjectDataInputSerializer(serializers.Serializer):
     """Validates the nested ``project`` object in a SavedProject request body."""
 
-    id = serializers.UUIDField(required=False)
     name = serializers.CharField(max_length=255)
     projectType = serializers.ChoiceField(
         choices=['builder', 'upload'], default='builder', required=False

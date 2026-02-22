@@ -1,5 +1,3 @@
-import uuid
-
 from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework import status
@@ -91,23 +89,17 @@ class ProjectTests(TestCase):
         self.assertEqual(response.data['project']['name'], 'Assembly Guide')
         self.assertIn('id', response.data['project'])
 
+    def test_create_project_id_is_server_assigned(self):
+        response = self._create_project()
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        # Server assigns the id; it should be a positive integer (as string in JSON)
+        project_id = response.data['project']['id']
+        self.assertGreater(int(project_id), 0)
+
     def test_create_project_with_steps(self):
         response = self._create_project(steps=[SAMPLE_STEP])
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['project']['steps'][0]['id'], 'step-1')
-
-    def test_create_project_with_client_uuid(self):
-        client_id = str(uuid.uuid4())
-        response = self._create_project(id=client_id)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['project']['id'], client_id)
-
-    def test_create_project_duplicate_id_returns_409(self):
-        client_id = str(uuid.uuid4())
-        Project.objects.create(id=client_id, owner=self.user, name='Existing')
-        response = self._create_project(id=client_id)
-        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-        self.assertIn('message', response.data)
 
     def test_create_project_camel_case_response(self):
         response = self._create_project(projectType='upload', projectModelUrl='https://example.com/m.glb')
@@ -187,6 +179,6 @@ class ProjectTests(TestCase):
 
     def test_public_get_missing_project_returns_404(self):
         public_client = APIClient()
-        response = public_client.get(f'/api/projects/{uuid.uuid4()}/public')
+        response = public_client.get('/api/projects/999999/public')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 

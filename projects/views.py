@@ -1,5 +1,3 @@
-import uuid
-
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -37,8 +35,7 @@ def _project_from_input(owner, validated_data, project: Project = None) -> Proje
     )
 
     if project is None:
-        project_id = project_data.get('id') or uuid.uuid4()
-        project = Project.objects.create(id=project_id, owner=owner, **fields)
+        project = Project.objects.create(owner=owner, **fields)
     else:
         for key, value in fields.items():
             setattr(project, key, value)
@@ -60,13 +57,6 @@ class ProjectListCreateView(APIView):
             return Response(
                 {'message': _first_error(ser.errors)},
                 status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        project_id = ser.validated_data['project'].get('id')
-        if project_id and Project.objects.filter(pk=project_id).exists():
-            return Response(
-                {'message': 'A project with this id already exists.'},
-                status=status.HTTP_409_CONFLICT,
             )
 
         project = _project_from_input(request.user, ser.validated_data)
