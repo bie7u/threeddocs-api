@@ -10,9 +10,25 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterField(
-            model_name='project',
-            name='id',
-            field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    sql=[
+                        'ALTER TABLE "projects_project" RENAME COLUMN "id" TO "old_uuid_id";',
+                        'ALTER TABLE "projects_project" ADD COLUMN "id" bigserial;',
+                        'ALTER TABLE "projects_project" DROP CONSTRAINT "projects_project_pkey";',
+                        'ALTER TABLE "projects_project" ADD PRIMARY KEY ("id");',
+                        'ALTER TABLE "projects_project" DROP COLUMN "old_uuid_id";',
+                    ],
+                    reverse_sql=migrations.RunSQL.noop,
+                ),
+            ],
+            state_operations=[
+                migrations.AlterField(
+                    model_name='project',
+                    name='id',
+                    field=models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID'),
+                ),
+            ],
         ),
     ]
