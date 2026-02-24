@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -28,4 +30,14 @@ class Project(models.Model):
 
     def __str__(self):
         return f'{self.name} ({self.owner.username})'
+
+
+class ProjectShare(models.Model):
+    """Holds the public share token for a project (one token per project)."""
+
+    project = models.OneToOneField(Project, on_delete=models.CASCADE, related_name='share')
+    token = models.UUIDField(default=uuid.uuid4, unique=True)
+
+    def __str__(self):
+        return f'Share({self.project_id}): {self.token}'
 

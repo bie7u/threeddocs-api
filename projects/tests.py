@@ -3,7 +3,7 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from .models import Project
+from .models import Project, ProjectShare
 
 
 SAMPLE_STEP = {
@@ -178,4 +178,65 @@ class ProjectTests(TestCase):
         public_client = APIClient()
         response = public_client.get('/api/projects/999999/public')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    # ------------------------------------------------------------------
+    # Share  POST /api/projects/:id/share
+    # ------------------------------------------------------------------
+
+    def test_share_creates_token(self):
+        proj = Project.objects.create(owner=self.user, name='P')
+        response = self.client.post(f'/api/projects/{proj.id}/share')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('shareToken', response.data)
+        # UUID format: 8-4-4-4-12
+        token = response.data['shareToken']
+        self.assertEqual(len(token), 36)
+
+    def test_share_returns_same_token_on_subsequent_calls(self):
+        proj = Project.objects.create(owner=self.user, name='P')
+        r1 = self.client.post(f'/api/projects/{proj.id}/share')
+        r2 = self.client.post(f'/api/projects/{proj.id}/share')
+        self.assertEqual(r1.data['shareToken'], r2.data['shareToken'])
+
+    def test_share_unauthenticated_returns_401(self):
+        proj = Project.objects.create(owner=self.user, name='P')
+        anon = APIClient()
+        response = anon.post(f'/api/projects/{proj.id}/share')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_share_other_user_project_returns_404(self):
+        proj = Project.objects.create(owner=self.other_user, name='NotMine')
+        response = self.client.post(f'/api/projects/{proj.id}/share')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_share_missing_project_returns_404(self):
+        response = self.client.post('/api/projects/999999/share')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    # ------------------------------------------------------------------
+    # Shared  GET /api/projects/shared/:token
+    # ------------------------------------------------------------------
+
+    def test_shared_get_project_by_token(self):
+        proj = Project.objects.create(owner=self.user, name='SharedProj')
+        share = ProjectShare.objects.create(project=proj)
+        public_client = APIClient()
+        response = public_client.get(f'/api/projects/shared/{share.token}')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], 'SharedProj')
+        self.assertIn('nodePositions', response.data)
+        self.assertIn('lastModified', response.data)
+
+    def test_shared_invalid_token_returns_404(self):
+        import uuid
+        public_client = APIClient()
+        response = public_client.get(f'/api/projects/shared/{uuid.uuid4()}')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_shared_no_auth_required(self):
+        proj = Project.objects.create(owner=self.user, name='Public')
+        share = ProjectShare.objects.create(project=proj)
+        anon = APIClient()  # no authentication
+        response = anon.get(f'/api/projects/shared/{share.token}')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
