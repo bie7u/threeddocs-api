@@ -8,7 +8,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+DEBUG = True
 
 _secret_key_default = 'django-insecure-bko0r!gj^#a&1lefs01+n^lkfbd0_zet5p^8*7wx#w8_twxy04'
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', _secret_key_default if DEBUG else None)
@@ -134,7 +134,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-APPEND_SLASH = False
+# APPEND_SLASH = False
 
 # Django REST Framework
 REST_FRAMEWORK = {
@@ -144,6 +144,16 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,  
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '10000/day',  
+        'anon': '1000/day',   
+    }
 }
 
 # CORS
@@ -158,9 +168,9 @@ ACCESS_TOKEN_COOKIE = 'access_token'
 REFRESH_TOKEN_COOKIE = 'refresh_token'
 
 # Cookie security settings
-JWT_COOKIE_HTTPONLY = True
-JWT_COOKIE_SAMESITE = 'Lax'
-JWT_COOKIE_SECURE = not DEBUG  # True in production (HTTPS)
+JWT_COOKIE_HTTPONLY = False
+JWT_COOKIE_SAMESITE = None
+JWT_COOKIE_SECURE = False
 
 # SimpleJWT token lifetimes
 SIMPLE_JWT = {

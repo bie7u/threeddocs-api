@@ -9,6 +9,7 @@ class CookieJWTAuthentication(JWTAuthentication):
     def authenticate(self, request):
         cookie_name = getattr(settings, 'ACCESS_TOKEN_COOKIE', 'access_token')
         raw_token = request.COOKIES.get(cookie_name)
+        print(request.COOKIES)
         if raw_token is None:
             return None
 

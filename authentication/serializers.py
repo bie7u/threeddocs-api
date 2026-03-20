@@ -18,3 +18,9 @@ class UserSerializer(serializers.Serializer):
     def get_name(self, user):
         full = f'{user.first_name} {user.last_name}'.strip()
         return full or user.username
+
+
+class RegisterSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)

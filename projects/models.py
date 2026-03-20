@@ -32,6 +32,22 @@ class Project(models.Model):
         return f'{self.name} ({self.owner.username})'
 
 
+class Created3DModelM(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created3d_models')
+    name = models.CharField(max_length=255)
+    text = models.CharField(max_length=255)
+    color = models.CharField(max_length=12)
+    texture_data_url = models.TextField(blank=True, null=True, default=None)
+
+
+class Uploaded3DModel(models.Model):
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded3d_models')
+    model_data_url = models.TextField()
+    model_file_name = models.CharField(max_length=255)
+    model_scale = models.FloatField(default=1.0)
+    name = models.CharField(max_length=255)
+
+
 class ProjectShare(models.Model):
     """Holds the public share token for a project (one token per project)."""
 
@@ -41,3 +57,9 @@ class ProjectShare(models.Model):
     def __str__(self):
         return f'Share({self.project_id}): {self.token}'
 
+
+class Suggestion(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    content = models.CharField(max_length=10000)
+    added_at = models.DateTimeField(auto_now_add=True)
+    

@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.db import transaction
 from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -8,7 +9,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import LoginSerializer, UserSerializer
+from .serializers import LoginSerializer, UserSerializer, RegisterSerializer
+
 
 ACCESS_COOKIE = getattr(settings, 'ACCESS_TOKEN_COOKIE', 'access_token')
 REFRESH_COOKIE = getattr(settings, 'REFRESH_TOKEN_COOKIE', 'refresh_token')
@@ -73,6 +75,55 @@ class LoginView(APIView):
         _set_token_cookies(response, refresh)
         return response
 
+
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {'message': 'Wrong registration data.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        name = serializer.validated_data['name']
+        email = serializer.validated_data['email']
+        password = serializer.validated_data['password']
+        with transaction.atomic():
+            if User.objects.filter(email=email).exists():
+                return Response(
+                    {'message': 'Email is already registered.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            user = User.objects.create_user(
+                first_name=name, username=email, email=email, password=password
+            )
+            user.first_name = name
+            user.save()
+            refresh = RefreshToken.for_user(user)
+            response = Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+            _set_token_cookies(response, refresh)
+            return response
+
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        current_password = request.data.get('currentPassword')
+        new_password = request.data.get('newPassword')
+
+        if not user.check_password(current_password):
+            return Response(
+                {'message': 'Current password is incorrect.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save()
+        return Response({'message': 'Password changed successfully.'})
+        
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
