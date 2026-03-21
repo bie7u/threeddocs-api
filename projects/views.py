@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
-from rest_framework import mixins
+from rest_framework import mixins, filters
 
 from .models import Project, ProjectShare, Created3DModelM, Uploaded3DModel, Suggestion
 from .serializers import ProjectSerializer, Created3dModelSerializer, Uploaded3dModelSerializer, SuggestionSerializer
@@ -17,6 +17,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
     serializer_class = ProjectSerializer
     permission_classes = [IsAuthenticated]
     http_method_names = ['get', 'post', 'put', 'delete', 'head', 'options']
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name'] 
 
     def get_queryset(self):
         return Project.objects.filter(owner=self.request.user)
@@ -70,7 +72,9 @@ class Created3DModelViewSet(mixins.ListModelMixin,
                             GenericViewSet):
     serializer_class = Created3dModelSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = None 
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name'] 
 
     def get_queryset(self):
         return Created3DModelM.objects.filter(owner=self.request.user)
@@ -81,6 +85,11 @@ class Created3DModelViewSet(mixins.ListModelMixin,
         share = ProjectShare.objects.select_related('project').get(token=project_uuid)
         project = share.project
         allowed_elements = [int(item.get("custom3dElementId")) for item in project.steps if item.get("custom3dElementId")]
+        allowed_elements += [
+            int(i['data']['custom3dElementId'])
+            for i in project.connections
+            if i.get('data', {}) and i['data'].get('custom3dElementId')
+        ]
         if int(pk) not in allowed_elements:
             raise NotFound()
         try:
@@ -98,7 +107,9 @@ class Uploaded3DModelViewSet(mixins.ListModelMixin,
                             GenericViewSet):
     serializer_class = Uploaded3dModelSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = None 
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name'] 
 
     def get_queryset(self):
         return Uploaded3DModel.objects.filter(owner=self.request.user)
@@ -108,8 +119,13 @@ class Uploaded3DModelViewSet(mixins.ListModelMixin,
         project_uuid =  request.query_params.get('project_uuid')
         share = ProjectShare.objects.select_related('project').get(token=project_uuid)
         project = share.project
-        allowed_elements = [int(item.get("uploadedModelId")) for item in project.steps if item.get("uploadedModelId")]
-        if int(pk) not in allowed_elements:
+        allowed_models = [int(item.get("uploadedModelId")) for item in project.steps if item.get("uploadedModelId")]
+        allowed_models += [
+            int(i['data']['uploadedModelId'])
+            for i in project.connections
+            if i.get('data', {}) and i['data'].get('uploadedModelId')
+        ]
+        if int(pk) not in allowed_models:
             raise NotFound()
         try:
             element = Uploaded3DModel.objects.get(pk=pk)

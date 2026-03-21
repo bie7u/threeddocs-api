@@ -37,6 +37,7 @@ class Created3DModelM(models.Model):
     name = models.CharField(max_length=255)
     text = models.CharField(max_length=255)
     color = models.CharField(max_length=12)
+    description = models.CharField(max_length=1000, blank=True, null=True, default=None)
     texture_data_url = models.TextField(blank=True, null=True, default=None)
 
 
@@ -46,6 +47,7 @@ class Uploaded3DModel(models.Model):
     model_file_name = models.CharField(max_length=255)
     model_scale = models.FloatField(default=1.0)
     name = models.CharField(max_length=255)
+    description = models.CharField(max_length=1000, blank=True, null=True, default=None)
 
 
 class ProjectShare(models.Model):
@@ -62,4 +64,3 @@ class Suggestion(models.Model):
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     content = models.CharField(max_length=10000)
     added_at = models.DateTimeField(auto_now_add=True)
-    

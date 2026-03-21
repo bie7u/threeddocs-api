@@ -49,7 +49,7 @@ class Created3dModelSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Created3DModelM
-        fields = ['id', 'name', 'text', 'color', 'texture_data_url']
+        fields = ['id', 'name', 'text', 'color', 'texture_data_url', 'description']
 
     def validate(self, attrs):
         user = self.context['request'].user
@@ -67,7 +67,7 @@ class Uploaded3dModelSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Uploaded3DModel
-        fields = ['id', 'name', 'model_file_name', 'model_scale', 'model_data_url']
+        fields = ['id', 'name', 'model_file_name', 'model_scale', 'model_data_url', 'description']
     
     def validate(self, attrs):
         user = self.context['request'].user
