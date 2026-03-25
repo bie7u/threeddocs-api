@@ -1,6 +1,6 @@
 from rest_framework import serializers
-
 from .models import Project, Created3DModelM, Uploaded3DModel, Suggestion
+import base64
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -67,7 +67,18 @@ class Uploaded3dModelSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Uploaded3DModel
-        fields = ['id', 'name', 'model_file_name', 'model_scale', 'model_data_url', 'description']
+        fields = ['id', 'name', 'model_file_name', 'model_scale', 'model_data_url', 'description', 'system_model']
+        extra_kwargs = {
+            'system_model': {'read_only': True},}
+        
+    def validate_model_data_url(self, value):
+        # Zakładamy, że to base64 string: "data:...;base64,...."
+        if value and ';base64,' in value:
+            base64_data = value.split(';base64,')[1]
+            decoded = base64.b64decode(base64_data)
+            if len(decoded) > 10 * 1024 * 1024:  # 10 MB
+                raise serializers.ValidationError("Plik nie może być większy niż 10MB.")
+        return value
     
     def validate(self, attrs):
         user = self.context['request'].user

@@ -1,15 +1,17 @@
-from django.urls import path
+from django.urls import path, include
 from rest_framework.routers import SimpleRouter
 
-from .views import ProjectPublicView, ProjectShareView, ProjectSharedView, ProjectViewSet, Created3DModelViewSet
+from .views import ProjectSharedView, ProjectViewSet, Created3DModelViewSet, Uploaded3DModelViewSet, \
+    SuggestionViewSet, PublicUploaded3DModelViewSet
 
-router = SimpleRouter(trailing_slash=False)
-router.register('', ProjectViewSet, basename='project')
-# router.register('created3dmodels', Created3DModelViewSet, basename='created3dmodel')
+router = SimpleRouter()
+router.register('elements', Created3DModelViewSet, basename='element')
+router.register('models', Uploaded3DModelViewSet, basename='model')
+router.register('suggestion', SuggestionViewSet, basename='suggestion')
+router.register('public-models', PublicUploaded3DModelViewSet, basename='public-model')
+router.register('projects', ProjectViewSet, basename='project')
 
 urlpatterns = [
+    path('', include(router.urls)),
     path('shared/<uuid:token>', ProjectSharedView.as_view(), name='project-shared'),
-] + router.urls + [
-    path('<int:pk>/public', ProjectPublicView.as_view(), name='project-public'),
-    path('<int:pk>/share', ProjectShareView.as_view(), name='project-share'),
 ]

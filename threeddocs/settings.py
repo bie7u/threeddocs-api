@@ -134,7 +134,6 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# APPEND_SLASH = False
 
 # Django REST Framework
 REST_FRAMEWORK = {
@@ -151,7 +150,7 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.AnonRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'user': '10000/day',  
+        'user': '10000/day',   # 1000 żądań na użytkownika dziennie
         'anon': '1000/day',   
     }
 }

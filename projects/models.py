@@ -48,6 +48,7 @@ class Uploaded3DModel(models.Model):
     model_scale = models.FloatField(default=1.0)
     name = models.CharField(max_length=255)
     description = models.CharField(max_length=1000, blank=True, null=True, default=None)
+    system_model = models.BooleanField(default=False) 
 
 
 class ProjectShare(models.Model):

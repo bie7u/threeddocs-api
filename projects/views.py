@@ -26,21 +26,8 @@ class ProjectViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
-
-class ProjectPublicView(generics.RetrieveAPIView):
-    """Unauthenticated read-only access to a single project (shareable link)."""
-
-    serializer_class = ProjectSerializer
-    permission_classes = [AllowAny]
-    queryset = Project.objects.all()
-
-
-class ProjectShareView(APIView):
-    """POST /api/projects/:id/share – Generate (or return existing) share token."""
-
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, pk):
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def share(self, request, pk=None):
         try:
             project = Project.objects.get(pk=pk, owner=request.user)
         except Project.DoesNotExist:
@@ -49,10 +36,26 @@ class ProjectShareView(APIView):
         share, _ = ProjectShare.objects.get_or_create(project=project)
         return Response({'shareToken': str(share.token)})
 
+# class ProjectPublicView(generics.RetrieveAPIView):
+#     serializer_class = ProjectSerializer
+#     permission_classes = [AllowAny]
+#     queryset = Project.objects.all()
+
+
+# class ProjectShareView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request, pk):
+#         try:
+#             project = Project.objects.get(pk=pk, owner=request.user)
+#         except Project.DoesNotExist:
+#             return Response(status=status.HTTP_404_NOT_FOUND)
+
+#         share, _ = ProjectShare.objects.get_or_create(project=project)
+#         return Response({'shareToken': str(share.token)})
+
 
 class ProjectSharedView(generics.RetrieveAPIView):
-    """GET /api/projects/shared/:token – Public access via share token."""
-
     serializer_class = ProjectSerializer
     permission_classes = [AllowAny]
 
@@ -112,7 +115,8 @@ class Uploaded3DModelViewSet(mixins.ListModelMixin,
     search_fields = ['name'] 
 
     def get_queryset(self):
-        return Uploaded3DModel.objects.filter(owner=self.request.user)
+        print('siema')
+        return Uploaded3DModel.objects.filter(owner=self.request.user) | Uploaded3DModel.objects.filter(system_model=True)
 
     @action(detail=True, methods=['get'], permission_classes=[AllowAny])
     def public_model(self, request, pk=None):
@@ -134,6 +138,16 @@ class Uploaded3DModelViewSet(mixins.ListModelMixin,
         serializer = self.get_serializer(element)
         return Response(serializer.data)
     
+class PublicUploaded3DModelViewSet(mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericViewSet):
+    serializer_class = Uploaded3dModelSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name'] 
+
+    def get_queryset(self):
+        return Uploaded3DModel.objects.filter(system_model=True)
+
 
 class SuggestionViewSet(mixins.CreateModelMixin, GenericViewSet):
     queryset = Suggestion.objects.all()
