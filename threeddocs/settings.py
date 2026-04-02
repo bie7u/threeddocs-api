@@ -5,22 +5,19 @@ Django settings for threeddocs project.
 import os
 from datetime import timedelta
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DEBUG = True
+load_dotenv()
 
-_secret_key_default = 'django-insecure-bko0r!gj^#a&1lefs01+n^lkfbd0_zet5p^8*7wx#w8_twxy04'
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', _secret_key_default if DEBUG else None)
-if not SECRET_KEY:
-    raise RuntimeError(
-        'DJANGO_SECRET_KEY environment variable must be set when DEBUG=False.'
-    )
+DEBUG = True if os.getenv("DEBUG").lower() == 'true' else False
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
+ALLOWED_HOSTS = [os.getenv('DJANGO_ALLOWED_HOSTS')]
 
-
+FRONTEND_HOST = os.getenv('FRONTEND_HOST')
 # Application definition
 
 INSTALLED_APPS = [
@@ -31,8 +28,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    #modules
     'rest_framework',
     'rest_framework_simplejwt',
+    #apps
     'authentication',
     'projects',
 ]
@@ -50,6 +49,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'threeddocs.urls'
 
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -60,6 +60,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.request',
             ],
         },
     },
@@ -71,28 +72,18 @@ WSGI_APPLICATION = 'threeddocs.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-_db_name = os.environ.get('POSTGRES_DB')
-if _db_name:
-    _db_password = os.environ.get('POSTGRES_PASSWORD')
-    if not _db_password:
-        raise RuntimeError('POSTGRES_PASSWORD environment variable must be set.')
-    DATABASES = {
+
+DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': _db_name,
-            'USER': os.environ.get('POSTGRES_USER', 'postgres'),
-            'PASSWORD': _db_password,
-            'HOST': os.environ.get('POSTGRES_HOST', 'db'),
-            'PORT': os.environ.get('POSTGRES_PORT', '5432'),
+            'NAME': os.getenv('POSTGRES_DB'),
+            'USER': os.getenv('POSTGRES_USER'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+            'HOST': os.getenv('POSTGRES_HOST'),
+            'PORT': os.getenv('POSTGRES_PORT'),
         }
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+
 
 
 # Password validation
@@ -153,14 +144,16 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'user': '10000/day',  
         'anon': '1000/day',   
-    }
+    },
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.MultiPartParser',
+        'rest_framework.parsers.FormParser',
+    ]
 }
 
 # CORS
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    'CORS_ALLOWED_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173',
-).split(',')
+CORS_ALLOWED_ORIGINS = [FRONTEND_HOST]
 CORS_ALLOW_CREDENTIALS = True
 
 # JWT cookie names
@@ -182,8 +175,13 @@ SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY,
 }
 
-CSRF_TRUSTED_ORIGINS = os.environ.get(
-    'CSRF_TRUSTED_ORIGINS',
-    'http://localhost:5173,http://127.0.0.1:5173',
-).split(',')
+CSRF_TRUSTED_ORIGINS = [FRONTEND_HOST]
 
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True

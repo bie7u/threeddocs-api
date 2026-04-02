@@ -8,8 +8,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from .serializers import LoginSerializer, UserSerializer, RegisterSerializer
+from .serializers import LoginSerializer, UserSerializer, RegisterSerializer, ResetPasswordSerializer, \
+    ResetPasswordConfSerializer
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from rest_framework import mixins
+from rest_framework.viewsets import GenericViewSet
+from .models import ResetPasswordM
 
 
 ACCESS_COOKIE = getattr(settings, 'ACCESS_TOKEN_COOKIE', 'access_token')
@@ -164,3 +169,38 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+class GoogleLoginView(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        token =request.data.get('credential', None)
+        if token:
+            id_info = id_token.verify_oauth2_token(token, requests.Request(), settings.GOOGLE_CLIENT_ID)
+            with transaction.atomic():
+                email = id_info['email']
+                user, _ = User.objects.get_or_create(email=email, username=email, is_google_user=True)
+                refresh = RefreshToken.for_user(user)
+                response = Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+                _set_token_cookies(response, refresh)
+                return response
+        else:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+
+class ResetPasswordViewSet(mixins.CreateModelMixin ,GenericViewSet):
+    queryset = ResetPasswordM.objects.all()
+    serializer_class = ResetPasswordSerializer
+    permission_classes = [AllowAny]
+
+
+class ResetPasswordConfViewSet(mixins.CreateModelMixin, GenericViewSet):
+    serializer_class = ResetPasswordConfSerializer
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.create(serializer.validated_data)
+        return Response(status=status.HTTP_200_OK)
