@@ -1,6 +1,11 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 
-from .views import LoginView, LogoutView, MeView, TokenRefreshView, RegisterView, ChangePasswordView
+from .views import LoginView, LogoutView, MeView, TokenRefreshView, RegisterView, ChangePasswordView, GoogleLoginView, ResetPasswordViewSet, ResetPasswordConfViewSet
+
+router = DefaultRouter()
+router.register(r'reset-password', ResetPasswordViewSet)
+router.register(r'reset-password-conf', ResetPasswordConfViewSet, basename='reset-password-conf')
 
 urlpatterns = [
     path('login', LoginView.as_view(), name='auth-login'),
@@ -9,4 +14,6 @@ urlpatterns = [
     path('logout', LogoutView.as_view(), name='auth-logout'),
     path('refresh', TokenRefreshView.as_view(), name='auth-token-refresh'),
     path('me', MeView.as_view(), name='auth-me'),
+    path('google/', GoogleLoginView.as_view(), name='google-login'),
+    path('', include(router.urls)),
 ]
