@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from authentication.models import UserM
 from rest_framework import serializers
 from .models import ResetPasswordM
 from django.core.exceptions import ObjectDoesNotExist
@@ -44,7 +44,7 @@ class ResetPasswordSerializer(serializers.Serializer):
     def validate(self, attrs):
         email = attrs.get('email', None)
         try:
-            user = User.objects.get(email=email)
+            user = UserM.objects.get(email=email)
             if user.is_google_user:
                 raise serializers.ValidationError('Google user can not change password.')
             attrs['user'] = user

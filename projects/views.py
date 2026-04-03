@@ -1,4 +1,4 @@
-from django.contrib.auth.models import User
+from authentication.models import UserM
 from rest_framework import generics, status, viewsets
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -159,7 +159,7 @@ class UserCounterView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        users = User.objects.all().count()
+        users = UserM.objects.all().count()
         projects_count = Project.objects.all().count()
         project_shared = ProjectShare.objects.all().count()
         return Response({
