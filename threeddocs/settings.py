@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv()
 
-DEBUG = True if os.getenv("DEBUG").lower() == 'true' else False
+DEBUG = True if os.getenv("DJANGO_DEBUG").lower() == 'true' else False
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
@@ -151,6 +151,8 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.FormParser',
     ]
 }
+
+AUTH_USER_MODEL = 'authentication.UserM'
 
 # CORS
 CORS_ALLOWED_ORIGINS = [FRONTEND_HOST]

@@ -2,7 +2,8 @@ import uuid
 
 from django.contrib.auth.models import User
 from django.db import models
-
+from threeddocs import settings
+from authentication.models import UserM
 
 class Project(models.Model):
     PROJECT_TYPE_CHOICES = [
@@ -10,7 +11,7 @@ class Project(models.Model):
         ('upload', 'Upload'),
     ]
 
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projects')
+    owner = models.ForeignKey(UserM, on_delete=models.CASCADE, related_name='projects')
     name = models.CharField(max_length=255)
     project_type = models.CharField(
         max_length=10,
@@ -33,7 +34,7 @@ class Project(models.Model):
 
 
 class Created3DModelM(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created3d_models')
+    owner = models.ForeignKey(UserM, on_delete=models.CASCADE, related_name='created3d_models')
     name = models.CharField(max_length=255)
     text = models.CharField(max_length=255)
     color = models.CharField(max_length=12)
@@ -41,7 +42,7 @@ class Created3DModelM(models.Model):
 
 
 class Uploaded3DModel(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded3d_models')
+    owner = models.ForeignKey(UserM, on_delete=models.CASCADE, related_name='uploaded3d_models')
     model_data_url = models.TextField()
     model_file_name = models.CharField(max_length=255)
     model_scale = models.FloatField(default=1.0)
@@ -59,7 +60,7 @@ class ProjectShare(models.Model):
 
 
 class Suggestion(models.Model):
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    user = models.ForeignKey(UserM, on_delete=models.SET_NULL, null=True, blank=True)
     content = models.CharField(max_length=10000)
     added_at = models.DateTimeField(auto_now_add=True)
     
