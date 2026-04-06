@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib.auth import authenticate
 from django.db import transaction
-from django.contrib.auth.models import User
+from authentication.models import UserM
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -61,8 +61,8 @@ class LoginView(APIView):
         password = serializer.validated_data['password']
 
         try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
+            user = UserM.objects.get(email=email)
+        except UserM.DoesNotExist:
             return Response(
                 {'message': 'Invalid email or password'},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -95,12 +95,12 @@ class RegisterView(APIView):
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
         with transaction.atomic():
-            if User.objects.filter(email=email).exists():
+            if UserM.objects.filter(email=email).exists():
                 return Response(
                     {'message': 'Email is already registered.'},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            user = User.objects.create_user(
+            user = UserM.objects.create_user(
                 first_name=name, username=email, email=email, password=password
             )
             user.first_name = name
@@ -180,7 +180,7 @@ class GoogleLoginView(APIView):
             id_info = id_token.verify_oauth2_token(token, requests.Request(), settings.GOOGLE_CLIENT_ID)
             with transaction.atomic():
                 email = id_info['email']
-                user, _ = User.objects.get_or_create(email=email, username=email, is_google_user=True)
+                user, _ = UserM.objects.get_or_create(email=email, username=email, is_google_user=True)
                 refresh = RefreshToken.for_user(user)
                 response = Response(UserSerializer(user).data, status=status.HTTP_200_OK)
                 _set_token_cookies(response, refresh)
