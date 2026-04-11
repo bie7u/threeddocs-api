@@ -115,7 +115,6 @@ class Uploaded3DModelViewSet(mixins.ListModelMixin,
     search_fields = ['name'] 
 
     def get_queryset(self):
-        print('siema')
         return Uploaded3DModel.objects.filter(owner=self.request.user) | Uploaded3DModel.objects.filter(system_model=True)
 
     @action(detail=True, methods=['get'], permission_classes=[AllowAny])
