@@ -15,7 +15,7 @@ DEBUG = os.getenv('DJANGO_DEBUG')
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 
-ALLOWED_HOSTS = [os.getenv('DJANGO_ALLOWED_HOSTS')]
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",")
 
 FRONTEND_HOST = os.getenv('FRONTEND_HOST')
 # Application definition
@@ -154,7 +154,7 @@ REST_FRAMEWORK = {
 AUTH_USER_MODEL = 'authentication.UserM'
 
 # CORS
-CORS_ALLOWED_ORIGINS = [FRONTEND_HOST]
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
 CORS_ALLOW_CREDENTIALS = True
 
 # JWT cookie names
@@ -176,7 +176,7 @@ SIMPLE_JWT = {
     'SIGNING_KEY': SECRET_KEY,
 }
 
-CSRF_TRUSTED_ORIGINS = [FRONTEND_HOST]
+CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
 
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 
